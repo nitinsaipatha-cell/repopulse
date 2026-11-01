@@ -29,3 +29,17 @@ These notes record simple implementation choices where the specification leaves 
 
 - The Python virtual environment is local to `backend/.venv` and is ignored by Git.
 - SQLite operations use one connection guarded by a threading lock. Repository cache and history keys are stored in lowercase.
+
+## Phase 4
+
+- Manifest dependencies retain declaration order before the scan limit is applied. Duplicate npm names in dependencies and devDependencies keep the production declaration; requirements duplicates keep the first case-insensitive name.
+- Dependency scan rows with a score sort by risk first and score second; rows without scores follow all scored rows.
+- History records default-weight scores on fresh collection so changing priorities does not change the historical baseline.
+- Renamed repository aliases are remembered in the service process; raw cache entries for the requested and canonical names permit reuse, while history uses the canonical name.
+- A scan failure cancels its remaining workers and persists a failed status. A service shutdown cancellation also marks its job failed. Automatic recovery of interrupted jobs after process restart is not implemented in this version.
+- Badge and report modules generate their content in Phase 4. HTTP route wiring, response media types and attachment headers are implemented in Phase 5.
+- Repository CSV exports have one row per metric; scan CSV exports include all specified row fields, with lists separated by semicolons.
+- ReportLab 4.2.5, as pinned by the specification, emits an `ast.NameConstant` deprecation warning on Python 3.12.15. PDF generation still works; do not change the pinned dependency solely to hide the warning.
+- Alias-race limitation: simultaneous requests for a previously unknown renamed repository and its canonical name may acquire different locks and collect twice before the alias is learned. Per-key deduplication works for the same normalized name.
+- After a scan observes a rate limit, it skips packages that have not started and records the rate-limit message. Packages already running are allowed to finish.
+- PDF text assertions use `pypdf` as a development-only dependency; it is not required by the production report generator.

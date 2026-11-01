@@ -43,6 +43,15 @@ def test_settings_defaults_and_origins(monkeypatch):
 
 def test_database_round_trip():
     db = Database(":memory:")
+    with db.lock:
+        indexes = db.connection.execute("PRAGMA index_list(history)").fetchall()
+        index_columns = [
+            [column["name"] for column in db.connection.execute(
+                'PRAGMA index_info("' + index["name"].replace('"', '""') + '")'
+            ).fetchall()]
+            for index in indexes
+        ]
+    assert ["full_name", "ts"] in index_columns
     db.put_cache("Owner/Repo", "2026-01-01", {"repo": "value"})
     assert db.get_cache("owner/REPO")["raw"] == {"repo": "value"}
     db.add_history("Owner/Repo", "2026-01-02", 90, "Low", {"activity": 80})
