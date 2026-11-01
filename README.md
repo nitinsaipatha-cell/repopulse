@@ -1,5 +1,38 @@
 # RepoPulse
 
+## Quick start
+
+1. Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Clone the repository and enter it:
+
+   ```sh
+   git clone https://github.com/nitinsaipatha-cell/repopulse.git
+   cd repopulse
+   ```
+
+3. Copy the environment example:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   Edit .env privately and paste a GitHub personal access token (classic, with no scopes) after GITHUB_TOKEN=. RepoPulse also works without a token, but GitHub limits unauthenticated access to 60 requests per hour. A token normally raises this to 5,000 per hour. **Never commit .env or share your token.** See Optional GitHub token below for creation steps.
+
+4. Start the application from the repository root:
+
+   ```sh
+   docker compose up --build
+   ```
+
+5. Open [http://localhost:8080](http://localhost:8080). Docker supplies the application runtimes; you do not need to install Python or Node for this route.
+6. Stop the application from another terminal in the repository root:
+
+   ```sh
+   docker compose down
+   ```
+
+   The database volume is retained. Do not add --volumes if you want to keep your cache, history, and scan jobs.
+
 RepoPulse turns public GitHub measurements into an explainable repository health score from 0 to 100 and a Low, Medium, or High risk rating. It is a semester project designed to make each result testable and defensible. Machine learning is out of scope.
 
 ## Features
@@ -11,7 +44,7 @@ RepoPulse turns public GitHub measurements into an explainable repository health
 - View score history and its trend line. Stable, established libraries can receive an Activity maturity adjustment.
 - Download PDF and metric CSV reports, dependency scan CSV, and an embeddable SVG badge.
 - Run a CLI dependency risk gate in your own GitHub Actions workflow.
-- Run locally with Docker or Python/Node, or publish a static frontend on GitHub Pages with the API on Render.
+- Run locally with Docker or Python/Node. Deployment is optional.
 
 ## Requirements and fixed stack
 
@@ -29,7 +62,7 @@ An unauthenticated GitHub client normally has 60 requests per hour. A token is s
 4. Copy .env.example to .env. Edit .env privately and put the value after GITHUB_TOKEN=. Do not place it in frontend configuration, commands saved in shell history, screenshots, reports, commits, or logs.
 5. Restart the API after changing its environment. GitHub normally allows 5,000 requests per hour for authenticated user requests.
 
-GitHub documents the classic-token creation flow in [Managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens). A token is not required to run tests. On Render, enter it through the dashboard instead of uploading .env.
+GitHub documents the classic-token creation flow in [Managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens). A token is not required to run tests.
 
 ## Run with Docker
 
@@ -52,9 +85,9 @@ docker compose down
 
 Docker build contexts exclude local environment files, database files, caches, and virtual environments. The frontend image builds with node:20-alpine and runs with nginx:1.27-alpine; the backend uses python:3.12-slim.
 
-## Run locally
+## Run without Docker
 
-Start in the repository root:
+Install Python 3.12 and Node.js 20 first. Start in the repository root:
 
 ```sh
 cp .env.example .env
@@ -78,7 +111,25 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Vite proxies /api to http://localhost:8000. Keep the backend terminal running.
+Open [http://localhost:5173](http://localhost:5173). Vite proxies /api to http://localhost:8000. Keep the backend terminal running. Stop each development server with Ctrl+C.
+
+Run backend tests in a separate terminal from the repository root:
+
+```sh
+cd backend
+. .venv/bin/activate
+python -m pytest -q
+```
+
+Run frontend tests in a separate terminal from the repository root:
+
+```sh
+cd frontend
+npm ci
+npm test
+```
+
+Tests use mocked HTTP requests and do not need a GitHub token or a running backend.
 
 ## First-run check and validation
 
@@ -126,7 +177,7 @@ For an oral exam, trace one raw measurement through its ramp, category average, 
 | VITE_API_BASE | empty | API origin, without /api; empty means same origin; trailing slashes are stripped |
 | VITE_PROXY | http://localhost:8000 | Development proxy target for /api |
 
-All VITE variables can become public browser code. They must never contain credentials. VITE_API_BASE is a build-time value: rebuild and redeploy after changing API_URL in GitHub. Docker frontend builds also accept VITE_BASE and VITE_API_BASE as build arguments.
+All VITE variables can become public browser code. They must never contain credentials. VITE_API_BASE is a build-time value: rebuild the frontend after changing it. Docker frontend builds also accept VITE_BASE and VITE_API_BASE as build arguments.
 
 ## Scoring
 
@@ -233,40 +284,6 @@ To use the example in a different project:
 4. The workflow checks out the target project and RepoPulse separately, installs its backend requirements, sets PYTHONPATH, and runs the CLI. Its GITHUB_TOKEN uses the runner-provided secret expression; no literal credential is stored.
 5. For reproducible tooling, replace the RepoPulse checkout's ref: main with a reviewed full commit SHA. The token needs read access only. Review logs for unscored/skipped packages as well as the exit code.
 
-## Publish the API on Render
-
-These instructions describe deployment; creating these files does not deploy the application. Make the completed files available on your GitHub main branch when you are ready.
-
-1. Sign in to [Render Dashboard](https://dashboard.render.com), connect your GitHub account, and grant access to this repository.
-2. Choose **New > Blueprint**, select nitinsaipatha-cell/repopulse (or your fork), and use branch main with Blueprint Path render.yaml.
-3. Review the proposed repopulse-api Docker web service on the Free plan. The blueprint sets dockerfilePath to ./backend/Dockerfile and dockerContext to ./backend; leave the repository root available for reading render.yaml.
-4. When prompted for unsynchronised environment variables, enter GITHUB_TOKEN privately and CORS_ORIGINS as your Pages origin. For this repository that origin is https://nitinsaipatha-cell.github.io, without /repopulse/ or a trailing slash. For a fork, use https://YOUR-ACCOUNT.github.io. These values are entered in Render, not committed. You can leave the token empty if accepting the 60-request limit.
-5. Choose **Deploy Blueprint** and wait for the service to become live. It listens on 0.0.0.0:8000 and uses /api/config as its health check.
-6. Copy the actual service URL shown by Render, for example https://YOUR-SERVICE.onrender.com. Names may be suffixed for uniqueness, so do not assume the hostname from the service name.
-7. Open that URL followed by /api/config, then /api/status. Confirm categories and token_configured. Avoid using a full analysis as the health check because it consumes GitHub requests.
-8. The blueprint sets DB_PATH=/tmp/repopulse.db and RATE_LIMIT_PER_MIN=30. To change the token or browser origin later, use the service's **Environment** settings and save/redeploy so the process receives the new values.
-
-The dashboard reads [render.yaml using the Blueprint format](https://render.com/docs/blueprint-spec); variables with sync: false are supplied during setup rather than stored in YAML.
-
-### Free-plan caveats
-
-Render's Free web service sleeps after 15 idle minutes. Its next request has a cold start, typically about a minute; wait and retry if the frontend initially reports a connection problem. The filesystem is ephemeral: /tmp/repopulse.db, cache, history, and scan jobs are lost on restart, redeploy, or spin-down. There is no persistent history on this deployment. The frontend on GitHub Pages remains static and available while the API sleeps. Other free-tier usage limits may also suspend service; check the dashboard. See [Render's free-instance limitations](https://render.com/docs/free).
-
-## Publish the frontend on GitHub Pages
-
-Deploy Render first so you know the API origin.
-
-1. In the GitHub repository, open **Settings > Pages**. Under **Build and deployment > Source**, select **GitHub Actions**.
-2. Open **Settings > Secrets and variables > Actions > Variables > New repository variable**. Name it API_URL and set it to the actual Render origin, such as https://YOUR-SERVICE.onrender.com. Do not add /api. API_URL is public configuration, not a token or secret.
-3. Confirm Render's CORS_ORIGINS matches the origin https://YOUR-ACCOUNT.github.io. A repository subpath belongs in VITE_BASE, not in CORS_ORIGINS.
-4. Ensure .github/workflows/deploy-pages.yml is on main. Open **Actions > Deploy GitHub Pages > Run workflow**, choose main, and run it. Future pushes to main that touch frontend/** also trigger deployment. Changes to API_URL alone require another manual run.
-5. The build fails with a clear message when API_URL is empty. Otherwise it sets VITE_API_BASE from API_URL and VITE_BASE=/<repository name>/ (for this repository, /repopulse/). Official configure-pages and upload-pages-artifact actions prepare and upload frontend/dist; deploy-pages publishes it in the github-pages environment with pages: write and id-token: write permissions.
-6. If the github-pages environment requires approval, approve it in the Actions run. Check **Settings > Environments > github-pages** if deployment branch rules block main.
-7. Follow the deployment URL emitted by Actions. For this repository the expected URL is https://nitinsaipatha-cell.github.io/repopulse/. Confirm the assets load, status banner appears as appropriate, and a repository analysis completes against Render.
-8. If requests fail, verify API_URL contains only the API origin, wake Render via /api/config, and confirm its CORS origin exactly matches the browser's origin. If assets return 404, check the repository name used for VITE_BASE and rebuild.
-
-This workflow targets a project site with a repository subpath. An account-root site or custom domain needs a corresponding VITE_BASE and CORS origin change. GitHub explains the workflow permissions, artifact, and environment requirements in [Using custom workflows with GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
-
 ## Tests and builds
 
 No token or real network is required for tests. Backend HTTP calls use httpx.MockTransport and SQLite tests use an in-memory database; an automatic socket guard fails attempted real connections. Frontend tests use mocked fetch, jsdom, and a ResizeObserver stub in setupTests.js.
@@ -360,3 +377,11 @@ The following decisions are carried from docs/README-notes.md so they remain vis
 - “Contributors” counts one page of up to 100 sampled contributors, not the true total. Contributor shares and bus factor are calculated from that returned sample.
 - OSV HTTP status is not stored in the cache. An empty cached vulnerability list cannot prove that the original request succeeded; failed external requests also return an empty list.
 - Other observed default-weight live results on 1 November 2026 were django/django 91.2 / Low, psf/requests 83.2 / Low, and pallets/click 82.2 / Low. These are dated observations, not fixed scoring guarantees.
+
+## Deployment (optional)
+
+RepoPulse can be deployed if you want to share a hosted instance, but it does not have to be deployed. Running locally with Docker or Python/Node is sufficient. Hosted deployments need an API service, static frontend hosting, the correct frontend API URL and base path, allowed CORS origins, and a storage plan if history must survive restarts. Configure credentials privately with your hosting provider.
+
+## Licence
+
+This project is licensed under the [MIT licence](LICENSE). Copyright (c) 2026 Nitin Sai.
