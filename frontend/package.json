@@ -1,0 +1,9 @@
+{
+  "name": "repopulse-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"dev": "vite", "build": "vite build", "test": "vitest run"},
+  "dependencies": {"react": "18.3.1", "react-dom": "18.3.1", "recharts": "2.15.0"},
+  "devDependencies": {"vite": "5.4.11", "vitest": "2.1.8", "jsdom": "25.0.1", "@testing-library/react": "16.1.0"}
+}

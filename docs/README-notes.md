@@ -52,3 +52,18 @@ These notes record simple implementation choices where the specification leaves 
 - The limiter follows the specification by trusting the first x-forwarded-for entry; deployment should use a trusted proxy that supplies that header.
 - CLI risk and minimum-score gates apply to dependencies with reported risks and scores. Unscored rows are printed as Not scored; rate-limit messages are printed to stderr. Invalid manifests and failed scan jobs return status 1. The specification does not define an additional fail-on-unscored rule.
 - API documentation and the OpenAPI schema are available under /api/docs and /api/openapi.json.
+
+## Phase 6
+
+- The frontend uses React state and three accessible tabs. Tab panels remain mounted to retain results, priorities, and active scan jobs when switching views.
+- Slider changes debounce for 250 ms. Requests carry cancellation signals and sequence checks so stale responses cannot replace newer results. Explicit refresh applies once; later priority changes return to cached analysis.
+- History displays the default-priority scores recorded by the service rather than retrospectively applying the current custom weights.
+- Chart series use teal, purple, blue, and brown to distinguish repositories; risk colours are reserved for risk tags, risk bars, vulnerabilities, and the pulse.
+- Null chart values remain missing. The numeric tables and expanded metrics also expose unavailable measurements as n/a.
+- API startup failures show a retry action; default category configuration lets the forms remain available when config cannot be loaded.
+- Tests stub ResizeObserver in setupTests.js and mock fetch. Browser layout checks use local fixture responses without contacting GitHub.
+- A scan polling failure shows the error and enables starting a new scan. The scan is not cancelled on the backend.
+- Google Fonts supplies Hanken Grotesk, with system-ui as the offline fallback. Clipboard copy requires a browser context that supports the Clipboard API.
+- Frontend package versions remain pinned to section 3. npm reports advisories in the specified development tooling; review those before deployment rather than silently changing the required versions.
+- Parser parity limitation: the frontend rejects `https://github.com:0/a/b`, while the backend currently accepts it because its port check treats zero as false. Ordinary supported repository references share the same rules.
+- The Vite bundle-size warning is expected with the specified Recharts version and the current single-bundle build. Both the default and GitHub Pages subpath builds succeed despite that warning.
