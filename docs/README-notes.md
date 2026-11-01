@@ -43,3 +43,12 @@ These notes record simple implementation choices where the specification leaves 
 - Alias-race limitation: simultaneous requests for a previously unknown renamed repository and its canonical name may acquire different locks and collect twice before the alias is learned. Per-key deduplication works for the same normalized name.
 - After a scan observes a rate limit, it skips packages that have not started and records the rate-limit message. Packages already running are allowed to finish.
 - PDF text assertions use `pypdf` as a development-only dependency; it is not required by the production report generator.
+
+## Phase 5
+
+- The API application factory owns and closes production resources through FastAPI lifespan. Tests inject a service with mock HTTP transports and in-memory SQLite; importing the API module does not open a database or network connection.
+- The HTTP compare endpoint enforces section 10's explicit 2-to-4 unique repository requirement, returning 422 for a single repository. The service's single-repository comparison returns null sensitivity to cover the no-sensitivity behavior mentioned elsewhere in the specification.
+- Rate limiting uses a sliding 60-second window and a monotonic clock. CORS is registered after the limiter so Starlette wraps early 429 responses with the configured CORS headers. Preflight OPTIONS requests do not consume the quota.
+- The limiter follows the specification by trusting the first x-forwarded-for entry; deployment should use a trusted proxy that supplies that header.
+- CLI risk and minimum-score gates apply to dependencies with reported risks and scores. Unscored rows are printed as Not scored; rate-limit messages are printed to stderr. Invalid manifests and failed scan jobs return status 1. The specification does not define an additional fail-on-unscored rule.
+- API documentation and the OpenAPI schema are available under /api/docs and /api/openapi.json.
