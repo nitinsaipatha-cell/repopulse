@@ -6,9 +6,9 @@ import { apiUrl, CATEGORIES, DEFAULT_WEIGHTS, normalizeRepo } from './api';
 
 const config = { categories: CATEGORIES, default_weights: DEFAULT_WEIGHTS, risk_thresholds: { Low: 80, Medium: 50 } };
 const status = { ok: true, token_configured: false, rate_limit: { limit: 60, remaining: 40, reset: 1793500000 } };
-function analysis(name = 'pallets/flask', score = 90) {
+function analysis(name = 'pallets/flask', score = 73.9) {
   return { full_name: name, repo: { html_url: `https://github.com/${name}`, description: 'An explainable repository result.', stars: 1000, forks: 100, language: 'Python', license: 'MIT' },
-    score, risk: 'Low', weights: DEFAULT_WEIGHTS, categories: Object.fromEntries(CATEGORIES.map(({ key, label }) => [key, { label, score: key === 'security' ? null : score, metrics: [{ key: `${key}_metric`, label: `${label} metric`, value: 20, score: key === 'security' ? null : .9, detail: `${label} evidence from public data.` }] }])),
+    score, risk: score >= 80 ? 'Low' : score >= 50 ? 'Medium' : 'High', weights: DEFAULT_WEIGHTS, categories: Object.fromEntries(CATEGORIES.map(({ key, label }) => [key, { label, score: key === 'security' ? null : score, metrics: [{ key: `${key}_metric`, label: `${label} metric`, value: 20, score: key === 'security' ? null : .9, detail: `${label} evidence from public data.` }] }])),
     overrides: ['A recorded override.'], concerns: ['Activity: A recorded concern.'], strengths: ['Documentation: Clear documentation.'],
     mature: true, adjustments: [{ category: 'activity', before: 40, after: 60, note: 'Established project adjustment.' }],
     scorecard: { score: 8, date: '2026-10-01' }, from_cache: false, fetched_at: '2026-11-01T00:00:00Z' };
@@ -47,7 +47,7 @@ it('renders startup banners, full analysis, expandable null metrics, history hin
   expect(screen.getByText(/Collecting commits, issues/)).toBeTruthy();
   await screen.findByRole('link', { name: 'pallets/flask' });
   expect(screen.getByText('An explainable repository result.')).toBeTruthy();
-  expect(screen.getByRole('img', { name: /Repository pulse: 90.0/ })).toBeTruthy();
+  expect(screen.getByRole('img', { name: /Repository pulse: 73.9/ })).toBeTruthy();
   expect(screen.getByText('Needs attention')).toBeTruthy();
   expect(screen.getByText('Going well')).toBeTruthy();
   expect(screen.getByText(/Maturity adjustment:/)).toBeTruthy();

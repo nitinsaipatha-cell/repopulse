@@ -91,12 +91,21 @@ curl -f http://localhost:8080/api/analyze/pallets/flask
 ```
 
 1. Confirm config lists five categories. Confirm status reports ok and the expected token_configured value; it exposes no token value.
-2. Check pallets/flask in the UI. First collection commonly takes 5 to 20 seconds, depending on API latency. The acceptance target with a valid token is Low risk with score at least 80; public data changes, so investigate the metric breakdown if the live result differs.
+2. Check pallets/flask in the UI. First collection commonly takes 5 to 20 seconds, depending on API latency. The live check on 1 November 2026 returned 73.9 / Medium. This is an observed result, not a promise of Low risk; public data and elapsed-time metrics change.
 3. Change a priority. The next result should have from_cache=true and updated normalised weights. The offline API test also verifies zero extra GitHub calls for cached custom-weight analysis.
 4. Refresh data and confirm history gains a point. A cache hit should not add one.
 5. Compare two clearly different projects and inspect stability. Check an archived or long-abandoned repository and inspect the High-risk override.
 6. Scan a manifest containing a version with an OSV advisory, a missing registry package, and a package without a GitHub link. Confirm the explanations, ordering, and scan CSV.
 7. Download the PDF and metric CSV, copy the README badge, and inspect the live badge. Scorecard is only an independent cross-check.
+
+Observed live results from 1 November 2026 (default weights; results may change):
+
+| Repository | Score | Risk |
+| --- | ---: | --- |
+| django/django | 91.2 | Low |
+| psf/requests | 83.2 | Low |
+| pallets/click | 82.2 | Low |
+| pallets/flask | 73.9 | Medium |
 
 For an oral exam, trace one raw measurement through its ramp, category average, maturity adjustment if applicable, normalised weighting, and any risk override. Compare the original public data with the plain-language findings. A health score is evidence for a decision, not a guarantee that code is safe or vulnerability-free.
 
@@ -343,3 +352,11 @@ The following decisions are carried from docs/README-notes.md so they remain vis
 - Frontend package versions remain pinned to section 3. npm reports advisories in the specified development tooling; review those before deployment rather than silently changing the required versions.
 - Parser parity limitation: the frontend rejects `https://github.com:0/a/b`, while the backend currently accepts it because its port check treats zero as false. Ordinary supported repository references share the same rules.
 - The Vite bundle-size warning is expected with the specified Recharts version and the current single-bundle build. Both the default and GitHub Pages subpath builds succeed despite that warning.
+
+### Live calibration and data coverage
+
+- In the 1 November 2026 live check, pallets/flask scored 73.9 / Medium because of its small maintainer group, a single release in the past year, and no recognised security policy or dependency-update configuration in the repository itself. The calculation follows the specified formulas; the original Flask 80+/Low acceptance expectation does not match this observed result.
+- The security-policy check does not see organization-level policies. Flask has an inherited Pallets policy, so this repository-local check can under-credit Flask and similar projects.
+- “Contributors” counts one page of up to 100 sampled contributors, not the true total. Contributor shares and bus factor are calculated from that returned sample.
+- OSV HTTP status is not stored in the cache. An empty cached vulnerability list cannot prove that the original request succeeded; failed external requests also return an empty list.
+- Other observed default-weight live results on 1 November 2026 were django/django 91.2 / Low, psf/requests 83.2 / Low, and pallets/click 82.2 / Low. These are dated observations, not fixed scoring guarantees.

@@ -67,3 +67,11 @@ These notes record simple implementation choices where the specification leaves 
 - Frontend package versions remain pinned to section 3. npm reports advisories in the specified development tooling; review those before deployment rather than silently changing the required versions.
 - Parser parity limitation: the frontend rejects `https://github.com:0/a/b`, while the backend currently accepts it because its port check treats zero as false. Ordinary supported repository references share the same rules.
 - The Vite bundle-size warning is expected with the specified Recharts version and the current single-bundle build. Both the default and GitHub Pages subpath builds succeed despite that warning.
+
+### Live calibration and data coverage
+
+- In the 1 November 2026 live check, pallets/flask scored 73.9 / Medium because of its small maintainer group, a single release in the past year, and no recognised security policy or dependency-update configuration in the repository itself. The calculation follows the specified formulas; the original Flask 80+/Low acceptance expectation does not match this observed result.
+- The security-policy check does not see organization-level policies. Flask has an inherited Pallets policy, so this repository-local check can under-credit Flask and similar projects.
+- “Contributors” counts one page of up to 100 sampled contributors, not the true total. Contributor shares and bus factor are calculated from that returned sample.
+- OSV HTTP status is not stored in the cache. An empty cached vulnerability list cannot prove that the original request succeeded; failed external requests also return an empty list.
+- Other observed default-weight live results on 1 November 2026 were django/django 91.2 / Low, psf/requests 83.2 / Low, and pallets/click 82.2 / Low. These are dated observations, not fixed scoring guarantees.
