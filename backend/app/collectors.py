@@ -169,6 +169,16 @@ async def collect(github, external, owner, repo, now=None):
         except Exception:
             return None
 
+    async def github_listing():
+        try:
+            return await github.get(f"{root}/contents/.github")
+        except RateLimited:
+            raise
+        except RepoNotFound:
+            return []
+        except Exception:
+            return None
+
     since = (now - timedelta(days=90)).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     calls = [
         optional(github.paged(f"{root}/commits", 3, {"since": since})),
@@ -177,7 +187,7 @@ async def collect(github, external, owner, repo, now=None):
         optional(github.get(f"{root}/issues", {"state": "all", "per_page": 100, "sort": "created", "direction": "desc"})) if main.get("has_issues", True) else asyncio.sleep(0, result=None),
         optional(github.get(f"{root}/pulls", {"state": "closed", "per_page": 50, "sort": "updated", "direction": "desc"})),
         optional(github.get(f"{root}/community/profile")), readme_info(),
-        optional(github.get(f"{root}/contents")), optional(github.get(f"{root}/contents/.github", missing_ok=True)),
+        optional(github.get(f"{root}/contents")), github_listing(),
         optional(external.scorecard(full_name)),
     ]
     commits, contributors, releases, issues, pulls, community, readme, root_files, github_dir, scorecard = await asyncio.gather(*calls)

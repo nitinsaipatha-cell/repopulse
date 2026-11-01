@@ -1,0 +1,32 @@
+# Copy to .github/workflows/dependency-risk.yml in the project to scan.
+name: Dependency risk
+on:
+  push:
+    paths: [package.json, .github/workflows/dependency-risk.yml]
+  pull_request:
+    paths: [package.json, .github/workflows/dependency-risk.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the project to scan
+        uses: actions/checkout@v4
+      - name: Check out RepoPulse
+        uses: actions/checkout@v4
+        with:
+          repository: nitinsaipatha-cell/repopulse
+          ref: main
+          path: .repopulse-tool
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r .repopulse-tool/backend/requirements.txt
+      - name: Check dependency risk
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.repopulse-tool/backend
+          DB_PATH: ${{ runner.temp }}/repopulse.db
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m app.cli package.json --max-risk medium --min-score 0

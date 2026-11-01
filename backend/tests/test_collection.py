@@ -219,3 +219,24 @@ async def test_malformed_comments_do_not_discard_issues():
     await gh.close()
     await external.close()
 
+
+
+@pytest.mark.parametrize('status,expected', [(404, []), (500, None)])
+async def test_absent_github_directory_is_empty_but_failure_is_unavailable(status, expected):
+    from app.scoring import analyze
+    def handler(request):
+        if request.url.path.endswith('/contents/.github'):
+            return httpx.Response(status)
+        return github_handler(request)
+    gh = GitHubClient(transport=httpx.MockTransport(handler))
+    external = ExternalClient(httpx.MockTransport(external_handler))
+    try:
+        raw = await collect(gh, external, 'old', 'name', NOW)
+        assert raw['github_dir'] == expected
+        metrics = analyze(raw, NOW)['categories']['security']['metrics']
+        for metric in metrics:
+            if metric['key'] in ('security_policy', 'ci', 'dependency_updates'):
+                assert metric['score'] == (0 if status == 404 else None)
+    finally:
+        await gh.close()
+        await external.close()
