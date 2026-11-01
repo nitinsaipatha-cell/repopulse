@@ -1,0 +1,5 @@
+flask==0.12.2
+requests==2.19.0
+django==3.2
+click==8.1.7
+this-package-does-not-exist-repopulse-demo
